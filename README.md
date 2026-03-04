@@ -22,7 +22,7 @@ This project is built using a modern, decoupled microservice architecture, spann
 1. **The Data Layer (Neo4j AuraDB):** The Elliptic Bitcoin dataset (~200,000 nodes/edges) was ingested into a live cloud graph database to maintain strict relational topology, utilizing a local feature store for O(1) attribute lookups.
 2. **The Intelligence Layer (FastAPI + PyTorch + Gemini):** A REST API serves as the central brain. It dynamically queries Neo4j for 2-hop neighborhood graphs, converts them to tensors, and runs a forward pass through a custom GraphSAGE neural network. The topology metrics and confidence scores are then passed to Google Gemini 2.5 Flash to generate a human-readable Suspicious Activity Report (SAR).
 3. **The Presentation Layer (Streamlit):** An interactive, glassmorphism-styled dashboard for compliance officers. It visualizes the queried transaction network using interactive Plotly NetworkX graphs, allowing investigators to pan, zoom, and hover over specific nodes to analyze routing degrees and layering behaviors.
-4. **The MLOps Layer (DVC + GitHub Actions):** Heavy `.pt` model weights and `.csv` feature stores are version-controlled via DVC. The CI/CD pipeline runs automated Pytest checks on the FastAPI server before every merge.
+4. **The MLOps Layer (DVC, MLflow, & GitHub Actions):** Heavy `.pt` model weights and `.csv` feature stores are version-controlled via DVC. Model training experiments, hyperparameters, and evaluation metrics (F1-score, accuracy) are systematically logged using MLflow. The CI/CD pipeline runs automated Pytest checks on the FastAPI server before every merge.
 
 ---
 
@@ -42,7 +42,7 @@ This project is built using a modern, decoupled microservice architecture, spann
 
 ```bash
 git clone https://github.com/vyom-nikhra/fraud-gnn-detection.git
-cd fraud-gnn-project
+cd fraud-gnn-detection
 ```
 
 ### 2. Environment Setup
@@ -79,10 +79,22 @@ Start the Streamlit Frontend (in a new terminal):
 streamlit run frontend/app.py
 ```
 
+### 5. Reproducing & Tracking Experiments (Optional)
+
+If you wish to train a new GraphSAGE model from scratch or review the historical hyperparameter tuning that led to the current production weights, you can use the MLflow UI:
+
+```bash
+# To train a new model:
+python src/train.py
+
+# To view the training history and metrics:
+mlflow ui
+```
+
 ---
 
 ## Author
 
 **Vyom Nikhra** B.Tech Data Science & AI, Indian Institute of Information Technology, Sri City
 
-[LinkedIn](https://www.google.com/search?q=https://linkedin.com/in/YOUR_PROFILE) | [GitHub](https://www.google.com/search?q=https://github.com/YOUR_USERNAME)
+[LinkedIn](https://www.linkedin.com/in/vyom-nikhra/) | [GitHub](https://github.com/vyom-nikhra)
