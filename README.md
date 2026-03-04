@@ -1,71 +1,88 @@
-# 🚨 Cryptocurrency Fraud Ring Detection via Graph Neural Networks
+# 🚨 Enterprise AML Fraud Ring Detection: GNN + LLM Pipeline
 
-![Python](https://img.shields.io/badge/Python-3.10-blue)
-![PyTorch](https://img.shields.io/badge/PyTorch-Geometric-EE4C2C)
-![FastAPI](https://img.shields.io/badge/FastAPI-009688)
-![Docker](https://img.shields.io/badge/Docker-2496ED)
-![MLflow](https://img.shields.io/badge/MLflow-Tracking-0194E2)
-![DVC](https://img.shields.io/badge/DVC-Data_Versioning-945DD6)
+[![CI/CD Pipeline](https://github.com/vyom-nikhra/fraud-gnn-detection/actions/workflows/ci.yml/badge.svg)](https://github.com/vyom-nikhra/fraud-gnn-detection/actions/workflows/ci.yml)
+![Python 3.10](https://img.shields.io/badge/Python-3.10-blue.svg)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-00a393.svg)
+![Neo4j](https://img.shields.io/badge/Neo4j-AuraDB-018bff.svg)
+![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-ee4c2c.svg)
 
-## 📌 Business Context
+An enterprise-grade Anti-Money Laundering (AML) system that moves beyond traditional tabular machine learning. By leveraging Graph Neural Networks (GraphSAGE) to analyze cryptocurrency peeling chains and LLMs (Google Gemini) to generate compliance reports, this system detects illicit financial networks in real-time.
 
-Cryptocurrency is frequently used for illicit activities, including ransomware payouts and darknet market transactions. To avoid detection, criminals use a technique called **layering** (or peeling chains), where stolen funds are bounced across dozens of intermediary wallets before being cashed out at a regulated exchange.
+![Streamlit Dashboard](assets/dashboard_licit.png)
+*Above: The Streamlit dashboard visualizing a 2-hop transaction network, with a dynamically generated Suspicious Activity Report (SAR).*
 
-Traditional tabular machine learning models often fail to detect this because they ignore network topology. This project implements a **Graph Neural Network (GraphSAGE)** to analyze the shape, structure, and connections of the Elliptic Bitcoin dataset, actively hunting for money laundering subgraphs.
+---
 
-## 🕸️ Network Topology Visualization
+## 🧠 The Architecture
 
-*(Below is a 2-hop transaction neighborhood surrounding a highly connected illicit node. Red = Fraudulent, Green = Licit, Gray = Unknown).*
+This project is built using a modern, decoupled microservice architecture, spanning four distinct layers:
 
-![Fraud Graph](assets/fraud_graph.png)
+![System Architecture Diagram](assets/architecture.png)
 
-## ⚙️ Engineering & MLOps Architecture
+1. **The Data Layer (Neo4j AuraDB):** The Elliptic Bitcoin dataset (~200,000 nodes/edges) was ingested into a live cloud graph database to maintain strict relational topology, utilizing a local feature store for O(1) attribute lookups.
+2. **The Intelligence Layer (FastAPI + PyTorch + Gemini):** A REST API serves as the central brain. It dynamically queries Neo4j for 2-hop neighborhood graphs, converts them to tensors, and runs a forward pass through a custom GraphSAGE neural network. The topology metrics and confidence scores are then passed to Google Gemini 2.5 Flash to generate a human-readable Suspicious Activity Report (SAR).
+3. **The Presentation Layer (Streamlit):** An interactive, glassmorphism-styled dashboard for compliance officers. It visualizes the queried transaction network using interactive Plotly NetworkX graphs, allowing investigators to pan, zoom, and hover over specific nodes to analyze routing degrees and layering behaviors.
+4. **The MLOps Layer (DVC + GitHub Actions):** Heavy `.pt` model weights and `.csv` feature stores are version-controlled via DVC. The CI/CD pipeline runs automated Pytest checks on the FastAPI server before every merge.
 
-This project is built as a production-ready MLOps pipeline, moving beyond static Jupyter notebooks:
+---
 
-1. **Model:** `SAGEConv` (GraphSAGE) built with PyTorch Geometric to dynamically sample and aggregate local network neighborhoods.
-2. **Experiment Tracking:** **MLflow** is integrated into the training loop to automatically log hyperparameters, F1-scores, Recall, and model artifacts.
-3. **Data Versioning:** **DVC** handles the 200MB+ of raw graph data and `.pt` weights, keeping the Git repository lightweight.
-4. **Model Serving:** A **FastAPI** REST endpoint loads the weights into memory on startup and validates incoming subgraph JSON payloads using Pydantic.
-5. **Containerization:** The entire inference API is packaged in a **Docker** container for one-click deployment.
+## 🛠️ Tech Stack
 
-## 🚀 Quick Start (Running the API)
+* **Machine Learning:** PyTorch, PyTorch Geometric (GraphSAGE)
+* **Generative AI:** Google Gemini SDK
+* **Database & APIs:** Neo4j (Cypher), FastAPI, Uvicorn
+* **Frontend:** Streamlit, NetworkX, Plotly (Interactive Graphing), Custom CSS
+* **MLOps:** DVC, MLflow, GitHub Actions, Pytest
 
-### 1. Clone and Pull Data
+---
 
-Because the heavy dataset and model weights are tracked by DVC, you will need to pull them after cloning the repository (requires AWS/GCP access if configured, or local `.dvc` tracking):
+## 🚀 Getting Started
+
+### 1. Clone the Repository
 
 ```bash
-git clone [https://github.com/YourUsername/fraud-gnn-detection.git](https://github.com/YourUsername/fraud-gnn-detection.git)
-cd fraud-gnn-detection
-dvc pull
+git clone https://github.com/vyom-nikhra/fraud-gnn-detection.git
+cd fraud-gnn-project
 ```
 
-### 2. Run via Docker
+### 2. Environment Setup
 
-The easiest way to run the inference server is via Docker:
+Create a `.env` file in the root directory and add your credentials:
 
+```bash
+NEO4J_URI=neo4j+ssc://your-instance.databases.neo4j.io
+NEO4J_USERNAME=neo4j
+NEO4J_PASSWORD=your_password
+LLM_API_KEY=your_google_gemini_key
 ```
-docker build -t fraud-gnn-api .
-docker run -p 8000:8000 fraud-gnn-api
-```
 
-### 3. Test the Endpoint
+### 3. Install Dependencies & Pull Weights
 
-Once the server is running, navigate to `http://127.0.0.1:8000/docs` to use the built-in Swagger UI to ping the `/predict` endpoint with a subgraph JSON payload.
-
-## 📊 Training the Model Locally
-
-To run the MLflow tracking pipeline and train the model from scratch:
-
-```
-# Install dependencies
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows use: venv\Scripts\activate
 pip install -r requirements.txt
-pip install mlflow dvc
-
-# Run the training script
-python src/train.py
-
-# View the tracking dashboard
-mlflow ui
+dvc pull  # Pulls the heavy model weights and feature CSVs
 ```
+
+### 4. Run the Microservices
+
+Start the FastAPI Backend:
+
+```bash
+uvicorn api.main:app --reload
+```
+
+Start the Streamlit Frontend (in a new terminal):
+
+```bash
+streamlit run frontend/app.py
+```
+
+---
+
+## Author
+
+**Vyom Nikhra** B.Tech Data Science & AI, Indian Institute of Information Technology, Sri City
+
+[LinkedIn](https://www.google.com/search?q=https://linkedin.com/in/YOUR_PROFILE) | [GitHub](https://www.google.com/search?q=https://github.com/YOUR_USERNAME)
